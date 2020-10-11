@@ -60,10 +60,10 @@ ParticleSystem::_initialize(int numParticles)
     m_numParticles = numParticles;
 
     // allocate host storage
-    m_hPos = new float[m_numParticles*4];
-    m_hVal = new float[m_numParticles*4];
-    memset(m_hPos, 0, m_numParticles*4*sizeof(float));
-    memset(m_hVal, 0, m_numParticles*4*sizeof(float));
+    m_hPos = new float[m_numParticles*3];
+    m_hVal = new float[m_numParticles*3];
+    memset(m_hPos, 0, m_numParticles*3*sizeof(float));
+    memset(m_hVal, 0, m_numParticles*3*sizeof(float));
 
     m_hCellStart = new uint[m_numGridCells];
     memset(m_hCellStart, 0, m_numGridCells*sizeof(uint));
@@ -72,7 +72,7 @@ ParticleSystem::_initialize(int numParticles)
     memset(m_hCellEnd, 0, m_numGridCells*sizeof(uint));
 
     // allocate GPU data
-    unsigned int memSize = sizeof(float) * 4 * m_numParticles;
+    unsigned int memSize = sizeof(float) * 3 * m_numParticles;
 
     allocateArray((void **)&m_dVal, memSize);
 

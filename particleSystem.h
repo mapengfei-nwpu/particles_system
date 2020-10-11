@@ -45,9 +45,6 @@ class ParticleSystem
         uint  *m_dCellStart;        // index of start of each cell in sorted list
         uint  *m_dCellEnd;          // index of end of cell
 
-        uint   m_gridSortBits;
-
-
         // params
         SimParams m_params;
         uint3 m_gridSize;
