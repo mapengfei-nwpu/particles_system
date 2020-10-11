@@ -11,16 +11,10 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <cstdio>
-#include <algorithm>
 #include <vector>
 
 #include "particleSystem.h"
 
-#define MAX_EPSILON_ERROR 5.00f
-#define THRESHOLD         0.30f
-
-#define GRID_SIZE       64
-#define NUM_PARTICLES   16384
 
 const uint width = 640, height = 480;
 
@@ -40,7 +34,8 @@ int main() {
     auto no = pos_old.size() / 3;
     ParticleSystem particle_system(no, radius);
     particle_system.inputData(pos_old.data(), val_old.data());
-    particle_system.interpolate(pos_new.size() / 3, pos_new.data(), val_new.data());
+    float* dddd = (float*)malloc(sizeof(float) * 3 * num_new);
+    particle_system.interpolate(pos_new.size() / 3, pos_new.data(), dddd);
 
     // here, val_new have been rewritten.
     return 0;

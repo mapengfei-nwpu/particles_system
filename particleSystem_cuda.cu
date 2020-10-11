@@ -59,7 +59,7 @@ extern "C"
 
     void copyArrayFromDevice(void* device, void* host, int size)
     {
-        checkCudaErrors(cudaMemcpy(device, host, size, cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(host, device, size, cudaMemcpyDeviceToHost));
     }
 
     void setParameters(SimParams *hostParams)
@@ -81,20 +81,6 @@ extern "C"
         numBlocks = iDivUp(n, numThreads);
     }
 
-    void integrateSystem(float *pos,
-                         float *vel,
-                         float deltaTime,
-                         uint numParticles)
-    {
-        thrust::device_ptr<float4> d_pos4((float4 *)pos);
-        thrust::device_ptr<float4> d_vel4((float4 *)vel);
-
-        thrust::for_each(
-            thrust::make_zip_iterator(thrust::make_tuple(d_pos4, d_vel4)),
-            thrust::make_zip_iterator(thrust::make_tuple(d_pos4+numParticles, d_vel4+numParticles)),
-            integrate_functor(deltaTime));
-    }
-
     void calcHash(uint  *gridParticleHash,
                   uint  *gridParticleIndex,
                   float *pos,
@@ -106,7 +92,7 @@ extern "C"
         // execute the kernel
         calcHashD<<< numBlocks, numThreads >>>(gridParticleHash,
                                                gridParticleIndex,
-                                               (float4 *) pos,
+                                               (float3 *) pos,
                                                numParticles);
 
         // check if kernel invocation generated an error
@@ -134,11 +120,11 @@ extern "C"
         reorderDataAndFindCellStartD<<< numBlocks, numThreads, smemSize>>>(
             cellStart,
             cellEnd,
-            (float4 *) sortedPos,
+            (float3 *) sortedPos,
             (float4 *) sortedVel,
             gridParticleHash,
             gridParticleIndex,
-            (float4 *) oldPos,
+            (float3 *) oldPos,
             (float4 *) oldVel,
             numParticles);
         getLastCudaError("Kernel execution failed: reorderDataAndFindCellStartD");
@@ -146,27 +132,29 @@ extern "C"
     }
 
     void collide(float *newVel,
+                 float *newPos,
                  float *sortedPos,
                  float *sortedVel,
                  uint  *gridParticleIndex,
                  uint  *cellStart,
                  uint  *cellEnd,
-                 uint   numParticles,
+                 uint   numParticles_new,
                  uint   numCells)
     {
 
         // thread per particle
         uint numThreads, numBlocks;
-        computeGridSize(numParticles, 64, numBlocks, numThreads);
+        computeGridSize(numParticles_new, 64, numBlocks, numThreads);
 
         // execute the kernel
-        collideD<<< numBlocks, numThreads >>>((float4 *)newVel,
-                                              (float4 *)sortedPos,
+        collideD<<< numBlocks, numThreads >>>((float3 *)newVel,
+                                              (float3 *)newPos,
+                                              (float3 *)sortedPos,
                                               (float4 *)sortedVel,
                                               gridParticleIndex,
                                               cellStart,
                                               cellEnd,
-                                              numParticles);
+                                              numParticles_new);
 
         // check if kernel invocation generated an error
         getLastCudaError("Kernel execution failed");

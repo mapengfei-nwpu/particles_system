@@ -13,10 +13,6 @@ extern "C"
     void copyArrayFromDevice(void* device, void* host, int size);
     void setParameters(SimParams *hostParams);
 
-    void integrateSystem(float *pos,
-                         float *vel,
-                         float deltaTime,
-                         uint numParticles);
 
     void calcHash(uint  *gridParticleHash,
                   uint  *gridParticleIndex,
@@ -34,14 +30,15 @@ extern "C"
                                      uint   numParticles,
                                      uint   numCells);
 
-    void collide(float *newVel,
-                 float *sortedPos,
-                 float *sortedVel,
-                 uint  *gridParticleIndex,
-                 uint  *cellStart,
-                 uint  *cellEnd,
-                 uint   numParticles,
-                 uint   numCells);
+    void collide(float* newVel,
+        float* newPos,
+        float* sortedPos,
+        float* sortedVel,
+        uint* gridParticleIndex,
+        uint* cellStart,
+        uint* cellEnd,
+        uint   numParticles_new,
+        uint   numCells);
 
     void sortParticles(uint *dGridParticleHash, uint *dGridParticleIndex, uint numParticles);
 

@@ -26,17 +26,11 @@ class ParticleSystem
         bool m_bInitialized;
         uint m_numParticles;
 
-        // CPU data
-        float *m_hPos;              // particle positions
-        float *m_hVal;              // particle velocities
-
-        uint  *m_hParticleHash;
-        uint  *m_hCellStart;
-        uint  *m_hCellEnd;
-
         // GPU data
         float *m_dPos;
         float *m_dVal;
+        float *m_dPos_new;
+        float *m_dVal_new;
 
         float *m_dSortedPos;
         float *m_dSortedVal;

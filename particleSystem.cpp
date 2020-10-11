@@ -20,7 +20,9 @@ ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
     m_bInitialized(false),
     m_numParticles(numParticles),
     m_dPos(nullptr),
-    m_dVal(nullptr)
+    m_dVal(nullptr),
+    m_dPos_new(nullptr),
+    m_dVal_new(nullptr)
 {
     // set the radius of a cell in the grid. 
     m_params.cellSize = make_float3(cellRadius, cellRadius, cellRadius);
@@ -59,12 +61,12 @@ ParticleSystem::_initialize(int numParticles)
     m_numParticles = numParticles;
 
     // allocate GPU data
-    unsigned int memSize = sizeof(float) * 3 * m_numParticles;
 
-    allocateArray((void **)&m_dVal, memSize);
+    allocateArray((void **)&m_dPos, sizeof(float) * 3 * m_numParticles);
+    allocateArray((void **)&m_dVal, sizeof(float) * 4 * m_numParticles);
 
-    allocateArray((void **)&m_dSortedPos, memSize);
-    allocateArray((void **)&m_dSortedVal, memSize);
+    allocateArray((void **)&m_dSortedPos, sizeof(float) * 3 * m_numParticles);
+    allocateArray((void **)&m_dSortedVal, sizeof(float) * 4 * m_numParticles);
 
     allocateArray((void **)&m_dGridParticleHash, m_numParticles*sizeof(uint));
     allocateArray((void **)&m_dGridParticleIndex, m_numParticles*sizeof(uint));
@@ -82,6 +84,7 @@ ParticleSystem::_finalize()
 {
     assert(m_bInitialized);
 
+    freeArray(m_dPos);
     freeArray(m_dVal);
     freeArray(m_dSortedPos);
     freeArray(m_dSortedVal);
@@ -93,13 +96,31 @@ ParticleSystem::_finalize()
 }
 
 void ParticleSystem::inputData(float* pos, float* val) {
-    std::vector<float> pos1;
-    auto data = pos1.data();
-    copyArrayToDevice(pos, m_dPos, sizeof(float)*m_numParticles*3);
 
+    copyArrayToDevice(m_dPos, pos, sizeof(float) * m_numParticles * 3);
+    copyArrayToDevice(m_dVal, val, sizeof(float) * m_numParticles * 4);
 
+    calcHash(m_dGridParticleHash, m_dGridParticleIndex, m_dPos, m_numParticles);
+
+    sortParticles(m_dGridParticleHash, m_dGridParticleIndex, m_numParticles);
+
+    reorderDataAndFindCellStart(m_dCellStart, m_dCellEnd, m_dSortedPos, m_dSortedVal,
+        m_dGridParticleHash, m_dGridParticleIndex, m_dPos, m_dVal, m_numParticles, m_numGridCells);
 }
 
 void ParticleSystem::interpolate(uint numParticleNew, float* pos, float* val) {
 
+    allocateArray((void**)&m_dPos_new, sizeof(float) * 3 * numParticleNew);
+    allocateArray((void**)&m_dVal_new, sizeof(float) * 3 * numParticleNew);
+
+    copyArrayToDevice(m_dPos_new, pos, sizeof(float) * m_numParticles * 3);
+    
+    // collide
+    collide(m_dVal_new,m_dPos_new,m_dVal,m_dPos,m_dGridParticleIndex,m_dCellStart,m_dCellEnd,
+            numParticleNew,m_numGridCells);
+
+    // finally write data
+    copyArrayFromDevice(m_dVal_new, val, sizeof(float) * 3 * numParticleNew);
+    freeArray(m_dPos_new);
+    freeArray(m_dVal_new);
 }

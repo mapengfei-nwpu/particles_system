@@ -28,35 +28,6 @@ namespace cg = cooperative_groups;
 // simulation parameters in constant memory
 __constant__ SimParams params;
 
-
-struct integrate_functor
-{
-    float deltaTime;
-
-    __host__ __device__
-    integrate_functor(float delta_time) : deltaTime(delta_time) {}
-
-    template <typename Tuple>
-    __device__
-    void operator()(Tuple t)
-    {
-        volatile float4 posData = thrust::get<0>(t);
-        volatile float4 velData = thrust::get<1>(t);
-        float3 pos = make_float3(posData.x, posData.y, posData.z);
-        float3 vel = make_float3(velData.x, velData.y, velData.z);
-
-        //vel += params.gravity * deltaTime;
-        //vel *= params.globalDamping;
-
-        // new position = old position + velocity * deltaTime
-        pos += vel * deltaTime;
-
-        // store new position and velocity
-        thrust::get<0>(t) = make_float4(pos, posData.w);
-        thrust::get<1>(t) = make_float4(vel, velData.w);
-    }
-};
-
 // calculate position in uniform grid
 __device__ int3 calcGridPos(float3 p)
 {
@@ -80,17 +51,15 @@ __device__ uint calcGridHash(int3 gridPos)
 __global__
 void calcHashD(uint   *gridParticleHash,  // output
                uint   *gridParticleIndex, // output
-               float4 *pos,               // input: positions
+               float3 *pos,               // input: positions
                uint    numParticles)
 {
     uint index = __umul24(blockIdx.x, blockDim.x) + threadIdx.x;
 
     if (index >= numParticles) return;
 
-    volatile float4 p = pos[index];
-
     // get address in grid
-    int3 gridPos = calcGridPos(make_float3(p.x, p.y, p.z));
+    int3 gridPos = calcGridPos(pos[index]);
     uint hash = calcGridHash(gridPos);
 
     // store grid hash and particle index
@@ -103,11 +72,11 @@ void calcHashD(uint   *gridParticleHash,  // output
 __global__
 void reorderDataAndFindCellStartD(uint   *cellStart,        // output: cell start index
                                   uint   *cellEnd,          // output: cell end index
-                                  float4 *sortedPos,        // output: sorted positions
+                                  float3 *sortedPos,        // output: sorted positions
                                   float4 *sortedVel,        // output: sorted velocities
                                   uint   *gridParticleHash, // input: sorted grid hashes
                                   uint   *gridParticleIndex,// input: sorted particle indices
-                                  float4 *oldPos,           // input: sorted position array
+                                  float3 *oldPos,           // input: sorted position array
                                   float4 *oldVel,           // input: sorted velocity array
                                   uint    numParticles)
 {
@@ -160,7 +129,7 @@ void reorderDataAndFindCellStartD(uint   *cellStart,        // output: cell star
 
         // Now use the sorted index to reorder the pos and vel data
         uint sortedIndex = gridParticleIndex[index];
-        float4 pos = oldPos[sortedIndex];
+        float3 pos = oldPos[sortedIndex];
         float4 vel = oldVel[sortedIndex];
 
         sortedPos[index] = pos;
@@ -169,47 +138,21 @@ void reorderDataAndFindCellStartD(uint   *cellStart,        // output: cell star
 
 
 }
-
-// collide two spheres using DEM method
-__device__
-float3 collideSpheres(float3 posA, float3 posB,
-                      float3 velA, float3 velB,
-                      float radiusA, float radiusB,
-                      float attraction)
-{
-    // calculate relative position
-    float3 relPos = posB - posA;
-
-    float dist = length(relPos);
-    float collideDist = radiusA + radiusB;
-
-    float3 force = make_float3(0.0f);
-
-    if (dist < collideDist)
-    {
-        float3 norm = relPos / dist;
-
-        // relative velocity
-        float3 relVel = velB - velA;
-
-        // relative tangential velocity
-        float3 tanVel = relVel - (dot(relVel, norm) * norm);
-        // attraction
-        force += attraction*relPos;
-    }
-
-    return force;
+__device__ float delta(const float3 pos1, const float3 pos2) {
+    return 1.0;
 }
 
-
+__device__ float3 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
+    float d = delta(pos1, pos2);
+    return make_float3(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z);
+}
 
 // collide a particle against all other particles in a given cell
 __device__
 float3 collideCell(int3    gridPos,
                    uint    index,
                    float3  pos,
-                   float3  vel,
-                   float4 *oldPos,
+                   float3 *oldPos,
                    float4 *oldVel,
                    uint   *cellStart,
                    uint   *cellEnd)
@@ -228,34 +171,29 @@ float3 collideCell(int3    gridPos,
 
         for (uint j=startIndex; j<endIndex; j++)
         {
-            if (j != index)                // check not colliding with self
-            {
-                float3 pos2 = make_float3(oldPos[j]);
-                float3 vel2 = make_float3(oldVel[j]);
-            }
+            force += collideOne(oldPos[j], pos, oldVel[j]);
         }
     }
-
     return force;
 }
 
 
 __global__
-void collideD(float4 *newVel,               // output: new velocity
-              float4 *oldPos,               // input: sorted positions
+void collideD(float3 *newVel,               // output: new velocity
+              float3 *newPos,               // input: new positions
+              float3 *oldPos,               // input: sorted positions
               float4 *oldVel,               // input: sorted velocities
               uint   *gridParticleIndex,    // input: sorted particle indices
               uint   *cellStart,
               uint   *cellEnd,
-              uint    numParticles)
+              uint    numParticles_new)
 {
     uint index = __mul24(blockIdx.x,blockDim.x) + threadIdx.x;
 
-    if (index >= numParticles) return;
+    if (index >= numParticles_new) return;
 
     // read particle data from sorted arrays
-    float3 pos = make_float3(oldPos[index]);
-    float3 vel = make_float3(oldVel[index]);
+    float3 pos = oldPos[index];
 
     // get address in grid
     int3 gridPos = calcGridPos(pos);
@@ -270,17 +208,13 @@ void collideD(float4 *newVel,               // output: new velocity
             for (int x=-1; x<=1; x++)
             {
                 int3 neighbourPos = gridPos + make_int3(x, y, z);
-                force += collideCell(neighbourPos, index, pos, vel, oldPos, oldVel, cellStart, cellEnd);
+                force += collideCell(neighbourPos, index, pos, oldPos, oldVel, cellStart, cellEnd);
             }
         }
     }
 
-    // collide with cursor sphere
-    // force += collideSpheres(pos, params.colliderPos, vel, make_float3(0.0f, 0.0f, 0.0f), params.particleRadius, params.colliderRadius, 0.0f);
-
     // write new velocity back to original unsorted location
-    uint originalIndex = gridParticleIndex[index];
-    newVel[originalIndex] = make_float4(vel + force, 0.0f);
+    newVel[index] = force;
 }
 
 #endif
