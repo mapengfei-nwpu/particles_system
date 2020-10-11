@@ -52,9 +52,14 @@ extern "C"
         checkCudaErrors(cudaDeviceSynchronize());
     }
 
-    void copyArrayToDevice(void *device, const void *host, int offset, int size)
+    void copyArrayToDevice(void *device, void *host, int size)
     {
-        checkCudaErrors(cudaMemcpy((char *) device + offset, host, size, cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(device, host, size, cudaMemcpyHostToDevice));
+    }
+
+    void copyArrayFromDevice(void* device, void* host, int size)
+    {
+        checkCudaErrors(cudaMemcpy(device, host, size, cudaMemcpyDeviceToHost));
     }
 
     void setParameters(SimParams *hostParams)

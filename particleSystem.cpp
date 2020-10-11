@@ -12,14 +12,13 @@
 #include <math.h>
 #include <memory.h>
 #include <cstdio>
+#include <vector>
 #include <cstdlib>
 #include <algorithm>
 
 ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
     m_bInitialized(false),
     m_numParticles(numParticles),
-    m_hPos(nullptr),
-    m_hVal(nullptr),
     m_dPos(nullptr),
     m_dVal(nullptr)
 {
@@ -59,18 +58,6 @@ ParticleSystem::_initialize(int numParticles)
 
     m_numParticles = numParticles;
 
-    // allocate host storage
-    m_hPos = new float[m_numParticles*3];
-    m_hVal = new float[m_numParticles*3];
-    memset(m_hPos, 0, m_numParticles*3*sizeof(float));
-    memset(m_hVal, 0, m_numParticles*3*sizeof(float));
-
-    m_hCellStart = new uint[m_numGridCells];
-    memset(m_hCellStart, 0, m_numGridCells*sizeof(uint));
-
-    m_hCellEnd = new uint[m_numGridCells];
-    memset(m_hCellEnd, 0, m_numGridCells*sizeof(uint));
-
     // allocate GPU data
     unsigned int memSize = sizeof(float) * 3 * m_numParticles;
 
@@ -95,11 +82,6 @@ ParticleSystem::_finalize()
 {
     assert(m_bInitialized);
 
-    delete [] m_hPos;
-    delete [] m_hVal;
-    delete [] m_hCellStart;
-    delete [] m_hCellEnd;
-
     freeArray(m_dVal);
     freeArray(m_dSortedPos);
     freeArray(m_dSortedVal);
@@ -108,4 +90,16 @@ ParticleSystem::_finalize()
     freeArray(m_dGridParticleIndex);
     freeArray(m_dCellStart);
     freeArray(m_dCellEnd);
+}
+
+void ParticleSystem::inputData(float* pos, float* val) {
+    std::vector<float> pos1;
+    auto data = pos1.data();
+    copyArrayToDevice(pos, m_dPos, sizeof(float)*m_numParticles*3);
+
+
+}
+
+void ParticleSystem::interpolate(uint numParticleNew, float* pos, float* val) {
+
 }

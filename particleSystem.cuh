@@ -9,7 +9,8 @@ extern "C"
 
     void threadSync();
 
-
+    void copyArrayToDevice(void* device, void* host, int size);
+    void copyArrayFromDevice(void* device, void* host, int size);
     void setParameters(SimParams *hostParams);
 
     void integrateSystem(float *pos,
