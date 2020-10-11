@@ -1,17 +1,3 @@
-/*
- * Copyright 1993-2015 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- *
- */
-
-// OpenGL Graphics includes
-#define HELPERGL_EXTERN_GL_FUNC_IMPLEMENTATION
-#include <helper_gl.h>
 
 #include "particleSystem.h"
 #include "particleSystem.cuh"
@@ -29,49 +15,36 @@
 #include <cstdlib>
 #include <algorithm>
 
-#ifndef CUDART_PI_F
-#define CUDART_PI_F         3.141592654f
-#endif
-
-ParticleSystem::ParticleSystem(uint numParticles, uint3 gridSize) :
+ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
     m_bInitialized(false),
     m_numParticles(numParticles),
-    m_hPos(0),
-    m_hVel(0),
-    m_dPos(0),
-    m_dVel(0),
-    m_gridSize(gridSize)
+    m_hPos(nullptr),
+    m_hVal(nullptr),
+    m_dPos(nullptr),
+    m_dVal(nullptr)
 {
-    m_numGridCells = m_gridSize.x*m_gridSize.y*m_gridSize.z;
-    //    float3 worldSize = make_float3(2.0f, 2.0f, 2.0f);
+    // set the radius of a cell in the grid. 
+    m_params.cellSize = make_float3(cellRadius, cellRadius, cellRadius);
 
-    m_gridSortBits = 18;    // increase this for larger grids
+    // set the simulation world as [-1£¬-1£¬-1]X[1£¬1£¬1].
+    m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
+    m_params.worldSize = make_float3(2.0f, 2.0f, 2.0f);
 
-    // set simulation parameters
+    // compute the grid size.
+    auto num_cellx = static_cast<uint>(ceil(m_params.worldSize.x / cellRadius));
+    auto num_celly = static_cast<uint>(ceil(m_params.worldSize.y / cellRadius));
+    auto num_cellz = static_cast<uint>(ceil(m_params.worldSize.z / cellRadius));
+    m_gridSize = make_uint3(num_cellx, num_celly, num_cellz);
+    m_numGridCells = m_gridSize.x * m_gridSize.y * m_gridSize.z;
+
+    // set simulation parameters.
     m_params.gridSize = m_gridSize;
     m_params.numCells = m_numGridCells;
-    m_params.numBodies = m_numParticles;
-
-    m_params.particleRadius = 1.0f / 64.0f;
-    m_params.colliderPos = make_float3(-1.2f, -0.8f, 0.8f);
-    m_params.colliderRadius = 0.2f;
-
-    m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
-    //    m_params.cellSize = make_float3(worldSize.x / m_gridSize.x, worldSize.y / m_gridSize.y, worldSize.z / m_gridSize.z);
-    float cellSize = m_params.particleRadius * 2.0f;  // cell size equal to particle diameter
-    m_params.cellSize = make_float3(cellSize, cellSize, cellSize);
-
-    m_params.spring = 0.5f;
-    m_params.damping = 0.02f;
-    m_params.shear = 0.1f;
-    m_params.attraction = 0.0f;
-    m_params.boundaryDamping = -0.5f;
-
-    m_params.gravity = make_float3(0.0f, -0.0003f, 0.0f);
-    m_params.globalDamping = 1.0f;
+    m_params.numParticles = m_numParticles;
 
     _initialize(numParticles);
 }
+
 
 ParticleSystem::~ParticleSystem()
 {
@@ -88,9 +61,9 @@ ParticleSystem::_initialize(int numParticles)
 
     // allocate host storage
     m_hPos = new float[m_numParticles*4];
-    m_hVel = new float[m_numParticles*4];
+    m_hVal = new float[m_numParticles*4];
     memset(m_hPos, 0, m_numParticles*4*sizeof(float));
-    memset(m_hVel, 0, m_numParticles*4*sizeof(float));
+    memset(m_hVal, 0, m_numParticles*4*sizeof(float));
 
     m_hCellStart = new uint[m_numGridCells];
     memset(m_hCellStart, 0, m_numGridCells*sizeof(uint));
@@ -101,10 +74,10 @@ ParticleSystem::_initialize(int numParticles)
     // allocate GPU data
     unsigned int memSize = sizeof(float) * 4 * m_numParticles;
 
-    allocateArray((void **)&m_dVel, memSize);
+    allocateArray((void **)&m_dVal, memSize);
 
     allocateArray((void **)&m_dSortedPos, memSize);
-    allocateArray((void **)&m_dSortedVel, memSize);
+    allocateArray((void **)&m_dSortedVal, memSize);
 
     allocateArray((void **)&m_dGridParticleHash, m_numParticles*sizeof(uint));
     allocateArray((void **)&m_dGridParticleIndex, m_numParticles*sizeof(uint));
@@ -123,13 +96,13 @@ ParticleSystem::_finalize()
     assert(m_bInitialized);
 
     delete [] m_hPos;
-    delete [] m_hVel;
+    delete [] m_hVal;
     delete [] m_hCellStart;
     delete [] m_hCellEnd;
 
-    freeArray(m_dVel);
+    freeArray(m_dVal);
     freeArray(m_dSortedPos);
-    freeArray(m_dSortedVel);
+    freeArray(m_dSortedVal);
 
     freeArray(m_dGridParticleHash);
     freeArray(m_dGridParticleIndex);

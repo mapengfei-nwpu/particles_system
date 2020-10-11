@@ -60,6 +60,6 @@ const uint width = 640, height = 480;
 
 int main() {
     auto g = make_uint3(10, 10, 10);
-    ParticleSystem a(100, g);
+    ParticleSystem a(100, 0.1);
     return 0;
 }

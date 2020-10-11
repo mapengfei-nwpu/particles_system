@@ -3,9 +3,6 @@
 #ifndef __PARTICLESYSTEM_H__
 #define __PARTICLESYSTEM_H__
 
-#define DEBUG_GRID 0
-#define DO_TIMING 0
-
 #include <helper_functions.h>
 #include "particles_kernel.cuh"
 #include "vector_functions.h"
@@ -14,7 +11,7 @@
 class ParticleSystem
 {
     public:
-        ParticleSystem(uint numParticles, uint3 gridSize);
+        ParticleSystem(uint numParticles, float cellRadius);
         ~ParticleSystem();
 
     protected: // methods
@@ -29,7 +26,7 @@ class ParticleSystem
 
         // CPU data
         float *m_hPos;              // particle positions
-        float *m_hVel;              // particle velocities
+        float *m_hVal;              // particle velocities
 
         uint  *m_hParticleHash;
         uint  *m_hCellStart;
@@ -37,10 +34,10 @@ class ParticleSystem
 
         // GPU data
         float *m_dPos;
-        float *m_dVel;
+        float *m_dVal;
 
         float *m_dSortedPos;
-        float *m_dSortedVel;
+        float *m_dSortedVal;
 
         // grid data for sorting method
         uint  *m_dGridParticleHash; // grid hash value for each particle
@@ -56,7 +53,6 @@ class ParticleSystem
         uint3 m_gridSize;
         uint m_numGridCells;
 
-        uint m_solverIterations;
 };
 
 #endif // __PARTICLESYSTEM_H__

@@ -45,52 +45,11 @@ struct integrate_functor
         float3 pos = make_float3(posData.x, posData.y, posData.z);
         float3 vel = make_float3(velData.x, velData.y, velData.z);
 
-        vel += params.gravity * deltaTime;
-        vel *= params.globalDamping;
+        //vel += params.gravity * deltaTime;
+        //vel *= params.globalDamping;
 
         // new position = old position + velocity * deltaTime
         pos += vel * deltaTime;
-
-        // set this to zero to disable collisions with cube sides
-#if 1
-
-        if (pos.x > 1.0f - params.particleRadius)
-        {
-            pos.x = 1.0f - params.particleRadius;
-            vel.x *= params.boundaryDamping;
-        }
-
-        if (pos.x < -1.0f + params.particleRadius)
-        {
-            pos.x = -1.0f + params.particleRadius;
-            vel.x *= params.boundaryDamping;
-        }
-
-        if (pos.y > 1.0f - params.particleRadius)
-        {
-            pos.y = 1.0f - params.particleRadius;
-            vel.y *= params.boundaryDamping;
-        }
-
-        if (pos.z > 1.0f - params.particleRadius)
-        {
-            pos.z = 1.0f - params.particleRadius;
-            vel.z *= params.boundaryDamping;
-        }
-
-        if (pos.z < -1.0f + params.particleRadius)
-        {
-            pos.z = -1.0f + params.particleRadius;
-            vel.z *= params.boundaryDamping;
-        }
-
-#endif
-
-        if (pos.y < -1.0f + params.particleRadius)
-        {
-            pos.y = -1.0f + params.particleRadius;
-            vel.y *= params.boundaryDamping;
-        }
 
         // store new position and velocity
         thrust::get<0>(t) = make_float4(pos, posData.w);
@@ -235,13 +194,6 @@ float3 collideSpheres(float3 posA, float3 posB,
 
         // relative tangential velocity
         float3 tanVel = relVel - (dot(relVel, norm) * norm);
-
-        // spring force
-        force = -params.spring*(collideDist - dist) * norm;
-        // dashpot (damping) force
-        force += params.damping*relVel;
-        // tangential shear force
-        force += params.shear*tanVel;
         // attraction
         force += attraction*relPos;
     }
@@ -280,9 +232,6 @@ float3 collideCell(int3    gridPos,
             {
                 float3 pos2 = make_float3(oldPos[j]);
                 float3 vel2 = make_float3(oldVel[j]);
-
-                // collide two spheres
-                force += collideSpheres(pos, pos2, vel, vel2, params.particleRadius, params.particleRadius, params.attraction);
             }
         }
     }
@@ -327,7 +276,7 @@ void collideD(float4 *newVel,               // output: new velocity
     }
 
     // collide with cursor sphere
-    force += collideSpheres(pos, params.colliderPos, vel, make_float3(0.0f, 0.0f, 0.0f), params.particleRadius, params.colliderRadius, 0.0f);
+    // force += collideSpheres(pos, params.colliderPos, vel, make_float3(0.0f, 0.0f, 0.0f), params.particleRadius, params.colliderRadius, 0.0f);
 
     // write new velocity back to original unsorted location
     uint originalIndex = gridParticleIndex[index];
