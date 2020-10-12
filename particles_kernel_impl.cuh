@@ -141,7 +141,6 @@ void reorderDataAndFindCellStartD(uint   *cellStart,        // output: cell star
 
 __device__ float phi(const float h) {
     float hh = abs(h);
-    printf("h: %f , hh: %f\n", h, hh);
     if (hh > 2.0) return 0.0;
     else return 0.25 * (1 + cos(fpi * h * 0.5));
 }
@@ -152,16 +151,11 @@ __device__ float delta(const float3 pos1, const float3 pos2) {
     auto x = phi((pos1.x - pos2.x) / r);
     auto y = phi((pos1.y - pos2.y) / r);
     auto z = phi((pos1.z - pos2.z) / r);
-    printf("(pos1.z: %f - pos2.z: %f) / params.cellRadius:%f\n", pos1.z, pos2.z, params.cellRadius);
-    printf("x: %f , y: %f , z: %f\n", x, y, z);
     return x * y * z;
 }
 
 __device__ float3 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
-    auto pos11 = make_float3(0.0, 0.3, 0.0);
-    auto pos22 = make_float3(0.0, 0.0, 0.3);
-    float d = delta(pos11, pos22);
-    printf("delta: %f\n",d);
+    float d = delta(pos1, pos2);
     return make_float3(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z);
 }
 
