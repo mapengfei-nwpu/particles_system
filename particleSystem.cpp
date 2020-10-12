@@ -39,6 +39,7 @@ ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
     m_numGridCells = m_gridSize.x * m_gridSize.y * m_gridSize.z;
 
     // set simulation parameters.
+    m_params.cellRadius = cellRadius;
     m_params.gridSize = m_gridSize;
     m_params.numCells = m_numGridCells;
     m_params.numParticles = m_numParticles;

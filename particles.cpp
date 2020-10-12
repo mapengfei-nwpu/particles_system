@@ -15,12 +15,9 @@
 
 #include "particleSystem.h"
 
-
-const uint width = 640, height = 480;
-
 const uint num_old = 300;
 const uint num_new = 600;
-const float radius = 0.1;
+const float radius = 0.3;
 
 int main() {
     std::vector<float> pos_old(3*num_old);

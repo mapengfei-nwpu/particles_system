@@ -10,6 +10,7 @@ typedef unsigned int uint;
 struct SimParams
 {
     uint3 gridSize;
+    float cellRadius;
     uint numCells;
     uint numParticles;
     float3 worldOrigin;
