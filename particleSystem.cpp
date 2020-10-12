@@ -114,7 +114,7 @@ void ParticleSystem::interpolate(uint numParticleNew, float* pos, float* val) {
     allocateArray((void**)&m_dPos_new, sizeof(float) * 3 * numParticleNew);
     allocateArray((void**)&m_dVal_new, sizeof(float) * 3 * numParticleNew);
 
-    copyArrayToDevice(m_dPos_new, pos, sizeof(float) * m_numParticles * 3);
+    copyArrayToDevice(m_dPos_new, pos, sizeof(float) * numParticleNew * 3);
     
     // collide
     collide(m_dVal_new,m_dPos_new,m_dVal,m_dPos,m_dGridParticleIndex,m_dCellStart,m_dCellEnd,
