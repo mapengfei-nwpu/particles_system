@@ -63,6 +63,9 @@ void calcHashD(uint   *gridParticleHash,  // output
     // get address in grid
     int3 gridPos = calcGridPos(pos[index]);
     uint hash = calcGridHash(gridPos);
+    if (hash == 56204) {
+        printf("position: %f, %f, %f\n grid position: %d, %d, %d\n", pos[index].x, pos[index].y, pos[index].z, gridPos.x, gridPos.y, gridPos.z);
+    }
 
     // store grid hash and particle index
     gridParticleHash[index] = hash;
@@ -147,16 +150,24 @@ __device__ float phi(const float h) {
 
 __device__ float delta(const float3 pos1, const float3 pos2) {
 
-    auto r = params.cellRadius * 0.5;
+    auto r = params.cellRadius/2.0;
     auto x = phi((pos1.x - pos2.x) / r);
     auto y = phi((pos1.y - pos2.y) / r);
     auto z = phi((pos1.z - pos2.z) / r);
+    //printf("position1: %f, %f, %f\nposition2: % f, % f, % f\nphi: %f, %f, %f\n",
+    //    pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z,x,y,z);
     return x * y * z;
 }
 
 __device__ float3 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
     float d = delta(pos1, pos2);
-    return make_float3(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z);
+    //printf("delta: %f\n", d);
+    auto force = make_float3(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z);
+    //printf("position1: %f, %f, %f\n", pos1.x, pos1.y, pos1.z);
+    //printf("position2: %f, %f, %f\n", pos2.x, pos2.y, pos2.z);
+    //printf("x: %f, y: %f, z: %f, w: %f, d: %f \n", val.x, val.y, val.z,val.w,d);
+    
+    return force;
 }
 
 // collide a particle against all other particles in a given cell
@@ -180,12 +191,17 @@ float3 collideCell(int3    gridPos,
     {
         // iterate over particles in this cell
         uint endIndex = cellEnd[gridHash];
-
+        if (index == 0) printf("cell size:%d\n", endIndex - startIndex);
         for (uint j=startIndex; j<endIndex; j++)
         {
             force += collideOne(oldPos[j], pos, oldVel[j]);
+            if (index == 0) {
+                printf("neighbour particle position: %f, %f, %f\n", oldPos[j].x, oldPos[j].y, oldPos[j].z);
+            }
         }
     }
+
+
     return force;
 }
 
@@ -211,7 +227,12 @@ void collideD(float3 *newVel,               // output: new velocity
 
     // examine neighbouring cells
     float3 force = make_float3(0.0f);
-
+    if (index == 0) {
+        printf("position: %f, %f, %f\n", pos.x, pos.y, pos.z);
+    }
+    if (index == 0) {
+        printf("grid position: %d, %d, %d\n", gridPos.x, gridPos.y, gridPos.z);
+    }
     for (int z=-1; z<=1; z++)
     {
         for (int y=-1; y<=1; y++)
@@ -219,11 +240,16 @@ void collideD(float3 *newVel,               // output: new velocity
             for (int x=-1; x<=1; x++)
             {
                 int3 neighbourPos = gridPos + make_int3(x, y, z);
+                if (index == 0) {
+                    printf("neighbour grid position: %d, %d, %d\n", neighbourPos.x, neighbourPos.y, neighbourPos.z);
+                }
                 force += collideCell(neighbourPos, index, pos, oldPos, oldVel, cellStart, cellEnd);
+
             }
         }
     }
 
+    // printf("x: %f, y: %f, z: %f \n", force.x, force.y, force.z);
     // write new velocity back to original unsorted location
     newVel[index] = force;
 }

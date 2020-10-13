@@ -165,6 +165,14 @@ extern "C"
         thrust::sort_by_key(thrust::device_ptr<uint>(dGridParticleHash),
                             thrust::device_ptr<uint>(dGridParticleHash + numParticles),
                             thrust::device_ptr<uint>(dGridParticleIndex));
+        auto a = (uint*)malloc(sizeof(uint) * numParticles);
+        auto b = (uint*)malloc(sizeof(uint) * numParticles);
+        copyArrayFromDevice(dGridParticleHash, a, sizeof(uint) * numParticles);
+        copyArrayFromDevice(dGridParticleIndex, b, sizeof(uint) * numParticles);
+        for (size_t i = 0; i < numParticles; i++)
+        {
+           // printf("Index: %d . Hash: %d \n",b[i], a[i]);
+        }
     }
 
 }   // extern "C"
