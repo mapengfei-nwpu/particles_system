@@ -15,6 +15,8 @@
 #include <time.h>
 
 #include "particleSystem.h"
+/// 一个奇怪的现象，如果 edge_divide 是 5 的倍数，那么最后的插值结果会比较精确。
+/// 这和粒子的坐标的是否准确有关。
 const uint edge_divide = 19;
 const uint num_old = edge_divide*edge_divide*edge_divide;
 const uint num_new = 600;
