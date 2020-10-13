@@ -32,9 +32,8 @@ extern "C"
 
     void collide(float* newVel,
         float* newPos,
-        float* sortedPos,
         float* sortedVel,
-        uint* gridParticleIndex,
+        float* sortedPos,
         uint* cellStart,
         uint* cellEnd,
         uint   numParticles_new,

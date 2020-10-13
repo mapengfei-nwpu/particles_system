@@ -133,9 +133,8 @@ extern "C"
 
     void collide(float *newVel,
                  float *newPos,
-                 float *sortedPos,
                  float *sortedVel,
-                 uint  *gridParticleIndex,
+                 float *sortedPos,
                  uint  *cellStart,
                  uint  *cellEnd,
                  uint   numParticles_new,
@@ -149,9 +148,8 @@ extern "C"
         // execute the kernel
         collideD<<< numBlocks, numThreads >>>((float3 *)newVel,
                                               (float3 *)newPos,
-                                              (float3 *)sortedPos,
                                               (float4 *)sortedVel,
-                                              gridParticleIndex,
+                                              (float3*)sortedPos,
                                               cellStart,
                                               cellEnd,
                                               numParticles_new);

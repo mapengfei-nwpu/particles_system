@@ -193,9 +193,8 @@ float3 collideCell(int3    gridPos,
 __global__
 void collideD(float3 *newVel,               // output: new velocity
               float3 *newPos,               // input: new positions
-              float3 *oldPos,               // input: sorted positions
               float4 *oldVel,               // input: sorted velocities
-              uint   *gridParticleIndex,    // input: sorted particle indices
+              float3 *oldPos,               // input: sorted positions
               uint   *cellStart,
               uint   *cellEnd,
               uint    numParticles_new)
@@ -205,7 +204,7 @@ void collideD(float3 *newVel,               // output: new velocity
     if (index >= numParticles_new) return;
 
     // read particle data from sorted arrays
-    float3 pos = oldPos[index];
+    float3 pos = newPos[index];
 
     // get address in grid
     int3 gridPos = calcGridPos(pos);
