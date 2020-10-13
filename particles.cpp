@@ -15,10 +15,10 @@
 #include <time.h>
 
 #include "particleSystem.h"
-const uint edge_divide = 32;
+const uint edge_divide = 19;
 const uint num_old = edge_divide*edge_divide*edge_divide;
 const uint num_new = 600;
-const float radius = 0.02;
+const float radius = 0.2;
 
 void data_generate(std::vector<float> &pos_old,
                    std::vector<float> &pos_new,
@@ -35,9 +35,9 @@ void data_generate(std::vector<float> &pos_old,
             for (size_t k = 0; k < edge_divide; k++)
             {
                 auto n = i * edge_divide * edge_divide + j * edge_divide + k;
-                pos_old[n * 3    ] = i / static_cast<float>(edge_divide) + 0.5 / static_cast<float>(edge_divide);
-                pos_old[n * 3 + 1] = j / static_cast<float>(edge_divide) + 0.5 / static_cast<float>(edge_divide);
-                pos_old[n * 3 + 2] = k / static_cast<float>(edge_divide) + 0.5 / static_cast<float>(edge_divide);
+                pos_old[n * 3    ] = i / static_cast<float>(edge_divide+1) + 0.5 / static_cast<float>(edge_divide+1)-0.5;
+                pos_old[n * 3 + 1] = j / static_cast<float>(edge_divide+1) + 0.5 / static_cast<float>(edge_divide+1)-0.5;
+                pos_old[n * 3 + 2] = k / static_cast<float>(edge_divide+1) + 0.5 / static_cast<float>(edge_divide+1)-0.5;
             }
         }
     }
@@ -46,11 +46,11 @@ void data_generate(std::vector<float> &pos_old,
         val_old[i * 4    ] = 4.0;
         val_old[i * 4 + 1] = 3.0;
         val_old[i * 4 + 2] = 2.0;
-        val_old[i * 4 + 3] = 1.0/(static_cast<float>(edge_divide)* static_cast<float>(edge_divide)* static_cast<float>(edge_divide));
+        val_old[i * 4 + 3] = 8.0 / static_cast<float>((edge_divide + 1)*(edge_divide + 1)*(edge_divide + 1)) / (radius * radius * radius);
     }
     for (size_t i = 0; i < pos_new.size(); i++)
     {
-        pos_new[i] = rrr();
+        pos_new[i] = rrr()*0.3;
     }
 }
 
@@ -81,12 +81,13 @@ int main() {
     auto no = pos_old.size() / 3;
     ParticleSystem particle_system(no, radius);
     particle_system.inputData(pos_old.data(), val_old.data());
-    // particle_system.interpolate(pos_new.size() / 3, pos_new.data(), val_new.data());
+    particle_system.interpolate(pos_new.size() / 3, pos_new.data(), val_new.data());
     
     for (size_t i = 0; i < pos_new.size() / 3; i++)
     {
         //printf("pos[%f, %f, %f]\n", pos_new[3 * i], pos_new[3 * i + 1], pos_new[3 * i + 2]);
-        //printf("val[%f, %f, %f]\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
+        //if(val_new[3 * i]>4.0|| val_new[3 * i+1]>3.0 || val_new[3 * i+2]>2.0)
+        printf("val[%f, %f, %f]\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
     }
     
     // here, val_new have been rewritten.

@@ -34,18 +34,19 @@ __constant__ float fpi = 3.14159265f;
 __device__ int3 calcGridPos(float3 p)
 {
     int3 gridPos;
-    gridPos.x = floor((p.x - params.worldOrigin.x) / params.cellSize.x);
-    gridPos.y = floor((p.y - params.worldOrigin.y) / params.cellSize.y);
-    gridPos.z = floor((p.z - params.worldOrigin.z) / params.cellSize.z);
+    /// PROBLEM: p might be outside of the box.
+    gridPos.x = trunc((p.x - params.worldOrigin.x) / params.cellSize.x);
+    gridPos.y = trunc((p.y - params.worldOrigin.y) / params.cellSize.y);
+    gridPos.z = trunc((p.z - params.worldOrigin.z) / params.cellSize.z);
     return gridPos;
 }
 
 // calculate address in grid from position (clamping to edges)
 __device__ uint calcGridHash(int3 gridPos)
 {
-    gridPos.x = gridPos.x & (params.gridSize.x-1);  // wrap grid, assumes size is power of 2
-    gridPos.y = gridPos.y & (params.gridSize.y-1);
-    gridPos.z = gridPos.z & (params.gridSize.z-1);
+    gridPos.x = (gridPos.x < params.gridSize.x) ? gridPos.x : params.gridSize.x - 1;
+    gridPos.y = (gridPos.y < params.gridSize.y) ? gridPos.y : params.gridSize.y - 1;
+    gridPos.z = (gridPos.z < params.gridSize.z) ? gridPos.z : params.gridSize.z - 1;
     return __umul24(__umul24(gridPos.z, params.gridSize.y), params.gridSize.x) + __umul24(gridPos.y, params.gridSize.x) + gridPos.x;
 }
 
@@ -63,9 +64,6 @@ void calcHashD(uint   *gridParticleHash,  // output
     // get address in grid
     int3 gridPos = calcGridPos(pos[index]);
     uint hash = calcGridHash(gridPos);
-    if (hash == 56204) {
-        printf("position: %f, %f, %f\n grid position: %d, %d, %d\n", pos[index].x, pos[index].y, pos[index].z, gridPos.x, gridPos.y, gridPos.z);
-    }
 
     // store grid hash and particle index
     gridParticleHash[index] = hash;
@@ -144,29 +142,23 @@ void reorderDataAndFindCellStartD(uint   *cellStart,        // output: cell star
 
 __device__ float phi(const float h) {
     float hh = abs(h);
-    if (hh > 2.0) return 0.0;
-    else return 0.25 * (1 + cos(fpi * h * 0.5));
+    if (hh > 1.0) return 0.0;
+    else return 0.25 * (1.0 + cos(fpi * hh));
 }
 
 __device__ float delta(const float3 pos1, const float3 pos2) {
 
-    auto r = params.cellRadius/2.0;
+    auto r = params.cellRadius;
     auto x = phi((pos1.x - pos2.x) / r);
     auto y = phi((pos1.y - pos2.y) / r);
     auto z = phi((pos1.z - pos2.z) / r);
-    //printf("position1: %f, %f, %f\nposition2: % f, % f, % f\nphi: %f, %f, %f\n",
-    //    pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z,x,y,z);
     return x * y * z;
 }
 
-__device__ float3 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
+__device__ float4 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
+
     float d = delta(pos1, pos2);
-    //printf("delta: %f\n", d);
-    auto force = make_float3(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z);
-    //printf("position1: %f, %f, %f\n", pos1.x, pos1.y, pos1.z);
-    //printf("position2: %f, %f, %f\n", pos2.x, pos2.y, pos2.z);
-    //printf("x: %f, y: %f, z: %f, w: %f, d: %f \n", val.x, val.y, val.z,val.w,d);
-    
+    auto force = make_float4(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z,d);    
     return force;
 }
 
@@ -191,17 +183,15 @@ float3 collideCell(int3    gridPos,
     {
         // iterate over particles in this cell
         uint endIndex = cellEnd[gridHash];
-        if (index == 0) printf("cell size:%d\n", endIndex - startIndex);
         for (uint j=startIndex; j<endIndex; j++)
         {
-            force += collideOne(oldPos[j], pos, oldVel[j]);
+            auto force4 = collideOne(oldPos[j], pos, oldVel[j]);
+            force += make_float3(force4);
             if (index == 0) {
-                printf("neighbour particle position: %f, %f, %f\n", oldPos[j].x, oldPos[j].y, oldPos[j].z);
+                printf("neighbour particle position: %f, %f, %f\n force: %f, %f, %f\ndelta: %f\n", oldPos[j].x, oldPos[j].y, oldPos[j].z,force4.x,force4.y,force4.z,force4.w);
             }
         }
     }
-
-
     return force;
 }
 
@@ -222,14 +212,17 @@ void collideD(float3 *newVel,               // output: new velocity
     // read particle data from sorted arrays
     float3 pos = newPos[index];
 
+    if (index == 0) {
+        pos.x = 0; pos.y = 0; pos.z = 0;
+        printf("position: %f, %f, %f\n", pos.x, pos.y, pos.z);
+    }
+
     // get address in grid
     int3 gridPos = calcGridPos(pos);
 
     // examine neighbouring cells
     float3 force = make_float3(0.0f);
-    if (index == 0) {
-        printf("position: %f, %f, %f\n", pos.x, pos.y, pos.z);
-    }
+
     if (index == 0) {
         printf("grid position: %d, %d, %d\n", gridPos.x, gridPos.y, gridPos.z);
     }
@@ -249,7 +242,6 @@ void collideD(float3 *newVel,               // output: new velocity
         }
     }
 
-    // printf("x: %f, y: %f, z: %f \n", force.x, force.y, force.z);
     // write new velocity back to original unsorted location
     newVel[index] = force;
 }
