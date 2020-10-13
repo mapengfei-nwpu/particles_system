@@ -24,10 +24,6 @@ void data_generate(std::vector<float> &pos_old,
                    std::vector<float> &pos_new,
                    std::vector<float> &val_old) {
 
-    // lambda function for random data generation.
-    srand(static_cast<uint>(time(0)));
-    auto rrr = [] {return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);};
-    
     for (size_t i = 0; i < edge_divide; i++)
     {
         for (size_t j = 0; j < edge_divide; j++)
@@ -41,6 +37,10 @@ void data_generate(std::vector<float> &pos_old,
             }
         }
     }
+
+    // grid positions and weights.
+    srand(static_cast<uint>(time(0)));
+    auto rrr = [] {return static_cast<float>(rand()) / static_cast<float>(RAND_MAX); };
     for (size_t i = 0; i < val_old.size()/4; i++)
     {
         val_old[i * 4    ] = 4.0;
@@ -48,6 +48,8 @@ void data_generate(std::vector<float> &pos_old,
         val_old[i * 4 + 2] = 2.0;
         val_old[i * 4 + 3] = 8.0 / static_cast<float>((edge_divide + 1)*(edge_divide + 1)*(edge_divide + 1)) / (radius * radius * radius);
     }
+
+    // random positions.
     for (size_t i = 0; i < pos_new.size(); i++)
     {
         pos_new[i] = rrr()*0.3;
@@ -62,32 +64,20 @@ int main() {
     std::vector<float> val_new(3*num_new);
 
     data_generate(pos_old, pos_new, val_old);
-
-    /*
-    for (size_t i = 0; i < pos_old.size()/3; i++)
-    {
-        printf("pos[%f, %f, %f]\n", pos_old[3 * i], pos_old[3 * i + 1], pos_old[3 * i + 2]);
-        printf("val[%f, %f, %f, %f]\n", val_old[4 * i], val_old[4 * i + 1], val_old[4 * i + 2], val_old[4 * i + 3]);
-    }
-
-    for (size_t i = 0; i < pos_new.size(); i++)
-    {
-        printf("%f\n", pos_new[i]);
-    }*/
     
-    assert(pos_old.size() * 4 == val_old.size() * 3);// "position: x,y,z; value: x,y,z,weight."
+    assert(pos_old.size() * 4 == val_old.size() * 3);
     assert(pos_new.size() == val_new.size());
 
-    auto no = pos_old.size() / 3;
-    ParticleSystem particle_system(no, radius);
+    /// use the particle system for delta interpolation.
+    ParticleSystem particle_system(pos_old.size() / 3, radius);
     particle_system.inputData(pos_old.data(), val_old.data());
     particle_system.interpolate(pos_new.size() / 3, pos_new.data(), val_new.data());
     
+    /// print the results.
     for (size_t i = 0; i < pos_new.size() / 3; i++)
     {
-        //printf("pos[%f, %f, %f]\n", pos_new[3 * i], pos_new[3 * i + 1], pos_new[3 * i + 2]);
-        //if(val_new[3 * i]>4.0|| val_new[3 * i+1]>3.0 || val_new[3 * i+2]>2.0)
-        printf("val[%f, %f, %f]\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
+        printf("pos: %f, %f, %f\n", pos_new[3 * i], pos_new[3 * i + 1], pos_new[3 * i + 2]);
+        printf("val: %f, %f, %f\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
     }
     
     // here, val_new have been rewritten.

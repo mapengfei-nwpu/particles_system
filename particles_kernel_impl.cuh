@@ -1,13 +1,3 @@
-/*
- * Copyright 1993-2015 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- *
- */
 
 /*
  * CUDA particle system kernel code.
@@ -155,11 +145,10 @@ __device__ float delta(const float3 pos1, const float3 pos2) {
     return x * y * z;
 }
 
-__device__ float4 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
+__device__ float3 collideOne(const float3 pos1, const float3 pos2, const float4 val) {
 
-    float d = delta(pos1, pos2);
-    auto force = make_float4(val.w * d * val.x, val.w * d * val.y, val.w * d * val.z,d);    
-    return force;
+    float weight = delta(pos1, pos2) * val.w;
+    return make_float3(weight * val.x, weight * val.y, weight * val.z);    
 }
 
 // collide a particle against all other particles in a given cell
@@ -181,15 +170,11 @@ float3 collideCell(int3    gridPos,
 
     if (startIndex != 0xffffffff)          // cell is not empty
     {
-        // iterate over particles in this cell
+        // get end of bucket for this cell
         uint endIndex = cellEnd[gridHash];
         for (uint j=startIndex; j<endIndex; j++)
         {
-            auto force4 = collideOne(oldPos[j], pos, oldVel[j]);
-            force += make_float3(force4);
-            if (index == 0) {
-                printf("neighbour particle position: %f, %f, %f\n force: %f, %f, %f\ndelta: %f\n", oldPos[j].x, oldPos[j].y, oldPos[j].z,force4.x,force4.y,force4.z,force4.w);
-            }
+            force += collideOne(oldPos[j], pos, oldVel[j]);
         }
     }
     return force;
@@ -212,20 +197,12 @@ void collideD(float3 *newVel,               // output: new velocity
     // read particle data from sorted arrays
     float3 pos = newPos[index];
 
-    if (index == 0) {
-        pos.x = 0; pos.y = 0; pos.z = 0;
-        printf("position: %f, %f, %f\n", pos.x, pos.y, pos.z);
-    }
-
     // get address in grid
     int3 gridPos = calcGridPos(pos);
 
     // examine neighbouring cells
     float3 force = make_float3(0.0f);
 
-    if (index == 0) {
-        printf("grid position: %d, %d, %d\n", gridPos.x, gridPos.y, gridPos.z);
-    }
     for (int z=-1; z<=1; z++)
     {
         for (int y=-1; y<=1; y++)
@@ -233,9 +210,6 @@ void collideD(float3 *newVel,               // output: new velocity
             for (int x=-1; x<=1; x++)
             {
                 int3 neighbourPos = gridPos + make_int3(x, y, z);
-                if (index == 0) {
-                    printf("neighbour grid position: %d, %d, %d\n", neighbourPos.x, neighbourPos.y, neighbourPos.z);
-                }
                 force += collideCell(neighbourPos, index, pos, oldPos, oldVel, cellStart, cellEnd);
 
             }
