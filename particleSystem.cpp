@@ -16,7 +16,10 @@
 #include <cstdlib>
 #include <algorithm>
 
-ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
+
+ParticleSystem::ParticleSystem(uint numParticles, float cellRadius,
+    float xOrigin, float yOrigin, float zOrigin,
+    float xSize,   float ySize,   float zSize):
     m_bInitialized(false),
     m_numParticles(numParticles),
     m_dPos(nullptr),
@@ -27,9 +30,9 @@ ParticleSystem::ParticleSystem(uint numParticles, float cellRadius) :
     // set the radius of a cell in the grid. 
     m_params.cellSize = make_float3(cellRadius, cellRadius, cellRadius);
 
-    // set the simulation world as [-1£¬-1£¬-1]X[1£¬1£¬1].
-    m_params.worldOrigin = make_float3(-1.0f, -1.0f, -1.0f);
-    m_params.worldSize = make_float3(2.0f, 2.0f, 2.0f);
+    // set the simulation world as [-1ï¿½ï¿½-1ï¿½ï¿½-1]X[1ï¿½ï¿½1ï¿½ï¿½1].
+    m_params.worldOrigin = make_float3(xOrigin, yOrigin, zOrigin);
+    m_params.worldSize   = make_float3(xSize,   ySize,   zSize);
 
     // compute the grid size.
     auto num_cellx = static_cast<uint>(ceil(m_params.worldSize.x / cellRadius));

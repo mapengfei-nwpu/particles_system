@@ -1,21 +1,9 @@
-################################################################################
-#
-# Makefile project only supported on Mac OS X and Linux Platforms)
-#
-################################################################################
-
 # Location of the CUDA Toolkit
 # CUDA_PATH ?= /usr/local/cuda
 CUDA_PATH ?= /usr
 
 # architecture
-HOST_ARCH   := $(shell uname -m)
-TARGET_ARCH := $(HOST_ARCH)
 TARGET_SIZE := 64
-
-# operating system
-HOST_OS   := linux
-TARGET_OS := $(HOST_OS)
 
 # host compiler
 HOST_COMPILER := g++

@@ -11,7 +11,26 @@
 class ParticleSystem
 {
     public:
-        ParticleSystem(uint numParticles, float cellRadius);
+        // These parameters are enough to construct a background grid.
+        ParticleSystem(
+            uint numParticles, float cellRadius,
+            float xOrigin, float yOrigin, float zOrigin,
+            float xSize,   float ySize,   float zSize);
+        
+        // default background grid is [-1,-1,-1]x[1,1,1]
+        ParticleSystem(uint numParticles, float cellRadius):
+            ParticleSystem(numParticles, cellRadius, -1.0f, -1.0f, -1.0f, 2.0f, 2.0f, 2.0f)    
+        {
+            //
+        }
+        
+        // default background with cell raius 0.2. 
+        ParticleSystem(uint numParticles):
+            ParticleSystem(numParticles, 0.2)
+        {
+            //
+        }
+
         void inputData(float* pos, float* val);
         void interpolate(uint numParticleNew, float* pos, float* val);
         ~ParticleSystem();
