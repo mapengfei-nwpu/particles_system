@@ -12,8 +12,8 @@ class ParticleSystem
 {
     public:
         ParticleSystem(uint numParticles, float cellRadius);
-        void ParticleSystem::inputData(float* pos, float* val);
-        void ParticleSystem::interpolate(uint numParticleNew, float* pos, float* val);
+        void inputData(float* pos, float* val);
+        void interpolate(uint numParticleNew, float* pos, float* val);
         ~ParticleSystem();
 
     protected: // methods
