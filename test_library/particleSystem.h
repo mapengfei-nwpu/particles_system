@@ -3,8 +3,9 @@
 #ifndef __PARTICLESYSTEM_H__
 #define __PARTICLESYSTEM_H__
 
-#include "vector_functions.h"
 #include "particles_kernel.cuh"
+#include "vector_functions.h"
+
 // Particle system class
 class ParticleSystem
 {
