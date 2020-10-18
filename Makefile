@@ -85,11 +85,9 @@ libparticles.so: particleSystem.o particleSystem_cuda.o
 particles.o:particles.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-particles: libparticles.so particles.o
+particles: particleSystem.o particleSystem_cuda.o particles.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	$(EXEC) rm -f particleSystem.o particleSystem_cuda.o particles.o
-
-
 
 run: build
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
