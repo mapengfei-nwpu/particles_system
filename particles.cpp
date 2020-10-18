@@ -1,10 +1,3 @@
-// CUDA runtime
-#include <cuda_runtime.h>
-
-// CUDA utilities and system includes
-#include <helper_functions.h>
-#include <helper_cuda.h>    // includes cuda.h and cuda_runtime_api.h
-
 // Includes
 #define NDEBUG
 #include <assert.h>

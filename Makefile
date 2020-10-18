@@ -81,20 +81,19 @@ particleSystem_cuda.o:particleSystem_cuda.cu
 
 libparticles.so: particleSystem.o particleSystem_cuda.o
 	$(EXEC) $(NVCC) -shared -o $@ $+ $(LIBRARIES)
+	rm -f particleSystem.o particleSystem_cuda.o
 
 particles.o:particles.cpp
-	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+	$(EXEC) g++ -o $@ -c $<
 
-particles: libparticles.so particles.o
-	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
-	$(EXEC) rm -f particleSystem.o particleSystem_cuda.o particles.o
-
-
+particles:particles.o libparticles.so
+	$(EXEC) g++ -o $@ $+ $(LIBRARIES)
+	rm -f particles.o libparticles.so
 
 run: build
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
-	rm -f particles particleSystem.o particleSystem_cuda.o particles.o
+	rm -f particles particleSystem.o particleSystem_cuda.o particles.o libparticles.so
 
 clobber: clean
