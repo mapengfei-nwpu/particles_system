@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
-#include <time.h>
+#include <chrono>
 
 #include "particleSystem.h"
 /// 一个奇怪的现象，如果 edge_divide 是 5 的倍数，那么最后的插值结果会比较精确。
@@ -48,7 +48,7 @@ void data_generate(std::vector<float> &pos_old,
         val_old[i * 4    ] = 4.0;
         val_old[i * 4 + 1] = 3.0;
         val_old[i * 4 + 2] = 2.0;
-        val_old[i * 4 + 3] = 8.0 / static_cast<float>((edge_divide + 1)*(edge_divide + 1)*(edge_divide + 1)) / (radius * radius * radius);
+        val_old[i * 4 + 3] = 1.0 / static_cast<float>((edge_divide + 1)*(edge_divide + 1)*(edge_divide + 1));
     }
 
     // random positions.
@@ -69,17 +69,26 @@ int main() {
     
     assert(pos_old.size() * 4 == val_old.size() * 3);
     assert(pos_new.size() == val_new.size());
+    
+    auto start = std::chrono::system_clock::now();
 
     /// use the particle system for delta interpolation.
     ParticleSystem particle_system(pos_old.size() / 3, radius);
     particle_system.inputData(pos_old.data(), val_old.data());
     particle_system.interpolate(pos_new.size() / 3, pos_new.data(), val_new.data());
     
+    // do something...
+    auto end   = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::cout <<  "花费了" 
+              << double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den   
+              << "秒" << std::endl;
+    
     /// print the results.
     for (size_t i = 0; i < pos_new.size() / 3; i++)
     {
-        printf("pos: %f, %f, %f\n", pos_new[3 * i], pos_new[3 * i + 1], pos_new[3 * i + 2]);
-        printf("val: %f, %f, %f\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
+        //printf("pos: %f, %f, %f\n", pos_new[3 * i], pos_new[3 * i + 1], pos_new[3 * i + 2]);
+        //printf("val: %f, %f, %f\n", val_new[3 * i], val_new[3 * i + 1], val_new[3 * i + 2]);
     }
     
     // here, val_new have been rewritten.
