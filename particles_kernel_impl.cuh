@@ -139,9 +139,9 @@ __device__ float phi(const float h) {
 __device__ float delta(const float3 pos1, const float3 pos2) {
 
     auto r = params.cellRadius;
-    auto x = phi((pos1.x - pos2.x) / r);
-    auto y = phi((pos1.y - pos2.y) / r);
-    auto z = phi((pos1.z - pos2.z) / r);
+    auto x = 2.0* phi((pos1.x - pos2.x) / r)/r;
+    auto y = 2.0* phi((pos1.y - pos2.y) / r)/r;
+    auto z = 2.0* phi((pos1.z - pos2.z) / r)/r;
     return x * y * z;
 }
 
