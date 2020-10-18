@@ -2,4 +2,7 @@
 data
 doc
 x64
+*.o
+*.so
+
 
