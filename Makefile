@@ -11,7 +11,7 @@ NVCC          := $(CUDA_PATH)/bin/nvcc -ccbin $(HOST_COMPILER)
 
 # internal flags
 NVCCFLAGS   := -m${TARGET_SIZE}
-CCFLAGS     :=
+CCFLAGS     := -fPIC
 LDFLAGS     :=
 
 # Debug build flags
@@ -79,15 +79,20 @@ particleSystem.o:particleSystem.cpp
 particleSystem_cuda.o:particleSystem_cuda.cu
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
+libparticles.so: particleSystem.o particleSystem_cuda.o
+	$(EXEC) $(NVCC) -shared -o $@ $+ $(LIBRARIES)
+
 particles.o:particles.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-particles: particleSystem.o particleSystem_cuda.o particles.o
+particles: libparticles.so particles.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	$(EXEC) rm -f particleSystem.o particleSystem_cuda.o particles.o
 
+
+
 run: build
-	$(EXEC) ./particles
+	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
 	rm -f particles particleSystem.o particleSystem_cuda.o particles.o
